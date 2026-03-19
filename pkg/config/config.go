@@ -88,6 +88,7 @@ type Config struct {
 	Heartbeat HeartbeatConfig `json:"heartbeat"`
 	Devices   DevicesConfig   `json:"devices"`
 	Voice     VoiceConfig     `json:"voice"`
+	Email     EmailConfig     `json:"email"`
 	// BuildInfo contains build-time version information
 	BuildInfo BuildInfo `json:"build_info,omitempty"`
 }
@@ -505,7 +506,17 @@ type DevicesConfig struct {
 }
 
 type VoiceConfig struct {
-	EchoTranscription bool `json:"echo_transcription" env:"PICOCLAW_VOICE_ECHO_TRANSCRIPTION"`
+	EchoTranscription bool   `json:"echo_transcription" env:"PICOCLAW_VOICE_ECHO_TRANSCRIPTION"`
+	TTSEnabled        bool   `json:"tts_enabled" env:"PICOCLAW_VOICE_TTS_ENABLED"`
+	TTSLanguage       string `json:"tts_language" env:"PICOCLAW_VOICE_TTS_LANGUAGE"`
+	TTSRate           float64 `json:"tts_rate" env:"PICOCLAW_VOICE_TTS_RATE"`
+	TTSPitch          float64 `json:"tts_pitch" env:"PICOCLAW_VOICE_TTS_PITCH"`
+}
+
+type EmailConfig struct {
+	Server   string `json:"server" env:"PICOCLAW_EMAIL_SERVER"`
+	Username string `json:"username" env:"PICOCLAW_EMAIL_USERNAME"`
+	Password string `json:"password" env:"PICOCLAW_EMAIL_PASSWORD"`
 }
 
 type ProvidersConfig struct {
@@ -773,6 +784,8 @@ type ToolsConfig struct {
 	Subagent        ToolConfig         `json:"subagent"                                                 envPrefix:"PICOCLAW_TOOLS_SUBAGENT_"`
 	WebFetch        ToolConfig         `json:"web_fetch"                                                envPrefix:"PICOCLAW_TOOLS_WEB_FETCH_"`
 	WriteFile       ToolConfig         `json:"write_file"                                               envPrefix:"PICOCLAW_TOOLS_WRITE_FILE_"`
+	ReadEmail       ToolConfig         `json:"read_email"                                               envPrefix:"PICOCLAW_TOOLS_READ_EMAIL_"`
+	Phone           ToolConfig         `json:"phone"                                                    envPrefix:"PICOCLAW_TOOLS_PHONE_"`
 }
 
 type SearchCacheConfig struct {
@@ -1239,6 +1252,10 @@ func (t *ToolsConfig) IsToolEnabled(name string) bool {
 		return t.SendFile.Enabled
 	case "write_file":
 		return t.WriteFile.Enabled
+	case "read_email":
+		return t.ReadEmail.Enabled
+	case "phone":
+		return t.Phone.Enabled
 	case "mcp":
 		return t.MCP.Enabled
 	default:

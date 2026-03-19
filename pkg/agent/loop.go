@@ -46,6 +46,7 @@ type AgentLoop struct {
 	channelManager *channels.Manager
 	mediaStore     media.MediaStore
 	transcriber    voice.Transcriber
+	synthesizer    voice.Synthesizer
 	cmdRegistry    *commands.Registry
 	mcp            mcpRuntime
 	mu             sync.RWMutex
@@ -230,6 +231,22 @@ func registerSharedTools(
 			if install_skills_enable {
 				agent.Tools.Register(tools.NewInstallSkillTool(registryMgr, agent.Workspace))
 			}
+		}
+
+		// Email tool — reads emails via IMAP
+		if cfg.Tools.IsToolEnabled("read_email") && cfg.Email.Server != "" {
+			agent.Tools.Register(tools.NewReadEmailTool(tools.EmailConfig{
+				Server:   cfg.Email.Server,
+				Username: cfg.Email.Username,
+				Password: cfg.Email.Password,
+			}))
+			logger.InfoCF("agent", "Email tool registered", map[string]any{"server": cfg.Email.Server})
+		}
+
+		// Phone tool — Android Termux API access (SMS, contacts, battery, etc.)
+		if cfg.Tools.IsToolEnabled("phone") && tools.IsTermuxAvailable() {
+			agent.Tools.Register(tools.NewTermuxTool())
+			logger.InfoCF("agent", "Phone (Termux) tool registered", nil)
 		}
 
 		// Spawn and spawn_status tools share a SubagentManager.
@@ -496,6 +513,11 @@ func (al *AgentLoop) SetMediaStore(s media.MediaStore) {
 // SetTranscriber injects a voice transcriber for agent-level audio transcription.
 func (al *AgentLoop) SetTranscriber(t voice.Transcriber) {
 	al.transcriber = t
+}
+
+// SetSynthesizer injects a voice synthesizer for TTS output of agent responses.
+func (al *AgentLoop) SetSynthesizer(s voice.Synthesizer) {
+	al.synthesizer = s
 }
 
 var audioAnnotationRe = regexp.MustCompile(`\[(voice|audio)(?::[^\]]*)?\]`)
@@ -942,6 +964,17 @@ func (al *AgentLoop) runAgentLoop(
 			ChatID:  opts.ChatID,
 			Content: finalContent,
 		})
+	}
+
+	// 7b. Optional: speak response via TTS (non-blocking)
+	if al.synthesizer != nil && finalContent != "" {
+		go func() {
+			speakCtx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+			defer cancel()
+			if err := al.synthesizer.Speak(speakCtx, finalContent); err != nil {
+				logger.WarnCF("voice", "TTS failed", map[string]any{"error": err})
+			}
+		}()
 	}
 
 	// 8. Log response

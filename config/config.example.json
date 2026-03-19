@@ -507,7 +507,25 @@
     },
     "write_file": {
       "enabled": true
+    },
+    "read_email": {
+      "enabled": true
+    },
+    "phone": {
+      "enabled": true
     }
+  },
+  "voice": {
+    "echo_transcription": true,
+    "tts_enabled": true,
+    "tts_language": "",
+    "tts_rate": 1.0,
+    "tts_pitch": 1.0
+  },
+  "email": {
+    "server": "",
+    "username": "",
+    "password": ""
   },
   "heartbeat": {
     "enabled": true,

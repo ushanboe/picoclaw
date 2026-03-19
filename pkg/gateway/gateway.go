@@ -230,6 +230,15 @@ func setupAndStartServices(
 		logger.InfoCF("voice", "Transcription enabled (agent-level)", map[string]any{"provider": transcriber.Name()})
 	}
 
+	// TTS: auto-detect and enable voice output
+	if cfg.Voice.TTSEnabled {
+		if synth := voice.DetectSynthesizer(cfg.Voice.TTSLanguage, cfg.Voice.TTSRate, cfg.Voice.TTSPitch); synth != nil {
+			agentLoop.SetSynthesizer(synth)
+			logger.InfoCF("voice", "TTS enabled", map[string]any{"engine": synth.Name()})
+			fmt.Printf("✓ TTS voice output enabled (%s)\n", synth.Name())
+		}
+	}
+
 	enabledChannels := runningServices.ChannelManager.GetEnabledChannels()
 	if len(enabledChannels) > 0 {
 		fmt.Printf("✓ Channels enabled: %s\n", enabledChannels)
@@ -456,6 +465,16 @@ func restartServices(
 		logger.InfoCF("voice", "Transcription re-enabled (agent-level)", map[string]any{"provider": transcriber.Name()})
 	} else {
 		logger.InfoCF("voice", "Transcription disabled", nil)
+	}
+
+	// Re-detect TTS on config reload
+	if cfg.Voice.TTSEnabled {
+		if synth := voice.DetectSynthesizer(cfg.Voice.TTSLanguage, cfg.Voice.TTSRate, cfg.Voice.TTSPitch); synth != nil {
+			al.SetSynthesizer(synth)
+			logger.InfoCF("voice", "TTS re-enabled", map[string]any{"engine": synth.Name()})
+		}
+	} else {
+		al.SetSynthesizer(nil)
 	}
 
 	return nil
